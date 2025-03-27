@@ -9,6 +9,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -77,7 +78,12 @@ func main() {
 		syncTableData(mysqlDB, sqliteDB, tableInfo, lastSync)
 		updateSyncMetadata(sqliteDB, tableName)
 	}
-	
+
+	err = ensureAPIKeysTable(sqliteDB)
+	if err != nil {
+		log.Printf("Error ensuring API keys table: %v", err)
+	}
+
 	log.Println("Sync completed successfully")
 }
 
@@ -424,4 +430,97 @@ func updateSyncMetadata(db *sql.DB, tableName string) {
 	if err != nil {
 		log.Printf("Error updating sync metadata: %v", err)
 	}
+}
+
+// ensureAPIKeysTable creates the api_keys table if it doesn't exist and
+// populates it with keys for members that don't already have one
+func ensureAPIKeysTable(db *sql.DB) error {
+	// Create api_keys table if it doesn't exist
+	_, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS api_keys (
+			member_id INTEGER PRIMARY KEY,
+			api_key TEXT NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create api_keys table: %v", err)
+	}
+
+	log.Println("Checking for members without API keys...")
+
+	// Check if members table exists
+	var memberTableExists int
+	err = db.QueryRow("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='members'").Scan(&memberTableExists)
+	if err != nil {
+		return fmt.Errorf("error checking for members table: %v", err)
+	}
+
+	if memberTableExists == 0 {
+		log.Println("Members table doesn't exist, skipping API key generation")
+		return nil
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("error starting transaction: %v", err)
+	}
+
+	// Get all member IDs that don't have API keys, directly using members.id
+	query := `
+		SELECT m.id 
+		FROM members m
+		LEFT JOIN api_keys a ON m.id = a.member_id
+		WHERE a.api_key IS NULL
+	`
+
+	rows, err := tx.Query(query)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error querying members without API keys: %v", err)
+	}
+	defer rows.Close()
+
+	// Prepare statement for inserting API keys
+	stmt, err := tx.Prepare("INSERT INTO api_keys (member_id, api_key) VALUES (?, ?)")
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error preparing insert statement: %v", err)
+	}
+	defer stmt.Close()
+
+	// Insert API keys for each member
+	keysGenerated := 0
+	for rows.Next() {
+		var memberID int
+		if err := rows.Scan(&memberID); err != nil {
+			log.Printf("Error scanning member ID: %v", err)
+			continue
+		}
+
+		// apiKey := generateAPIKey()
+
+		id, err := uuid.NewRandom()
+		if err != nil {
+			log.Printf("Error generating API key for member %d: %v", memberID, err)
+			continue
+		}
+
+		apiKey := id.String()
+		_, err = stmt.Exec(memberID, apiKey)
+		if err != nil {
+			log.Printf("Error inserting API key for member %d: %v", memberID, err)
+			continue
+		}
+
+		keysGenerated++
+	}
+
+	if err := tx.Commit(); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error committing API keys: %v", err)
+	}
+
+	log.Printf("Generated %d new API keys", keysGenerated)
+	return nil
 }
