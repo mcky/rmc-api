@@ -26,3 +26,7 @@ primary_region = 'lhr'
   cpu_kind = 'shared'
   cpus = 1
   memory_mb = 512
+
+[mounts]
+  source = "app_data"
+  destination = "/data"
