@@ -31,9 +31,9 @@ func main() {
 		log.Fatalf("MYSQL_DSN environment variable is missing")
 	}
 
-	sqliteFile := os.Getenv("SQLITE_FILE")
+	sqliteFile := os.Getenv("DB_PATH")
 	if sqliteFile == "" {
-		log.Fatalf("SQLITE_FILE environment variable is missing")
+		log.Fatalf("DB_PATH environment variable is missing")
 	}
 
 	mysqlDB, err := sql.Open("mysql", mysqlDSN)

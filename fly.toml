@@ -12,6 +12,7 @@ primary_region = 'lhr'
 
 [env]
   PORT = '8080'
+  DB_PATH = '/data/rmc_sqlite2.db'
 
 [http_service]
   internal_port = 8080
