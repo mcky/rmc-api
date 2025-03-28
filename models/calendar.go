@@ -61,25 +61,78 @@ func createCalendarEvent(meet Meet, lastSyncTime time.Time) *ics.VEvent {
 	return event
 }
 
+func createSocialCalendarEvent(social Social, lastSyncTime time.Time) *ics.VEvent {
+	event := ics.NewEvent(fmt.Sprintf("social-%d@rockhoppers.org", social.ID))
+
+	event.SetSummary(social.Title)
+
+	description := social.Description
+
+	if social.Speaker != "" {
+		description = fmt.Sprintf("%s\n\nSpeaker: %s", description, social.Speaker)
+	}
+
+	description = fmt.Sprintf("%s\n\nLocation: %s", description, social.Location)
+
+	if social.StartTime != "" {
+		description = fmt.Sprintf("%s\n\nTime: %s", description, social.StartTime)
+	}
+
+	description = fmt.Sprintf("%s\n\nLast Sync: %s", description, lastSyncTime.Format("2 January 2006 15:04:05"))
+
+	event.SetDescription(description)
+	event.SetLocation(social.Location)
+
+	if social.StartDate != nil {
+		// For all-day events, we need to set the date without time component
+		event.SetAllDayStartAt(*social.StartDate)
+
+		// Default to one day event
+		endDate := social.StartDate.AddDate(0, 0, 1)
+		event.SetAllDayEndAt(endDate)
+	}
+
+	return event
+}
+
 func GenerateCalendar(db *sql.DB) (string, error) {
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodPublish)
-	cal.SetProductId("-//Rockhoppers//Meet Calendar//EN")
-	cal.SetName("Rockhoppers Meets")
-	cal.SetDescription("Calendar of all Rockhoppers meets")
-	cal.SetXWRCalName("Rockhoppers Meets")
-	cal.SetXWRCalDesc("Calendar of all Rockhoppers meets")
+	cal.SetProductId("-//Rockhoppers//Events Calendar//EN")
+	cal.SetName("Rockhoppers Events")
+	cal.SetDescription("Calendar of all Rockhoppers events")
+	cal.SetXWRCalName("Rockhoppers Events")
+	cal.SetXWRCalDesc("Calendar of all Rockhoppers events")
 
 	meets, err := GetAllMeets(db)
-
-	var lastSyncTime time.Time
-	err = db.QueryRow("SELECT last_sync_time FROM sync_metadata WHERE table_name = 'meets'").Scan(&lastSyncTime)
 	if err != nil {
 		return "", err
 	}
 
+	var meetsLastSyncTime time.Time
+	err = db.QueryRow("SELECT last_sync_time FROM sync_metadata WHERE table_name = 'meets'").Scan(&meetsLastSyncTime)
+	if err != nil {
+		meetsLastSyncTime = time.Now() // Default to current time if no sync time available
+	}
+
 	for _, meet := range meets {
-		event := createCalendarEvent(meet, lastSyncTime)
+		event := createCalendarEvent(meet, meetsLastSyncTime)
+		cal.AddVEvent(event)
+	}
+
+	socials, err := GetAllSocials(db)
+	if err != nil {
+		return "", err
+	}
+
+	var socialsLastSyncTime time.Time
+	err = db.QueryRow("SELECT last_sync_time FROM sync_metadata WHERE table_name = 'socials'").Scan(&socialsLastSyncTime)
+	if err != nil {
+		socialsLastSyncTime = time.Now() // Default to current time if no sync time available
+	}
+
+	for _, social := range socials {
+		event := createSocialCalendarEvent(social, socialsLastSyncTime)
 		cal.AddVEvent(event)
 	}
 

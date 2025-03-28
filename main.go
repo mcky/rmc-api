@@ -48,15 +48,6 @@ func main() {
 		log.Println("Failed to ping database:", err)
 	}
 
-	var meetCount int
-	err = db.QueryRow("SELECT COUNT(*) FROM meets").Scan(&meetCount)
-	if err != nil {
-		// log.Fatalf("Failed to count meets: %v", err)
-		log.Println("Failed to count meets: %v", err)
-	} else {
-		log.Printf("Database contains %d meets", meetCount)
-	}
-
 	r := gin.Default()
 
 	api := r.Group("/")
@@ -82,6 +73,24 @@ func main() {
 			c.JSON(http.StatusOK, meet)
 		})
 
+		api.GET("/socials", func(c *gin.Context) {
+			socials, err := models.GetAllSocials(db)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, socials)
+		})
+
+		api.GET("/socials/:id", func(c *gin.Context) {
+			id := c.Param("id")
+			social, err := models.GetSocialByID(db, id)
+			if err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Social not found"})
+				return
+			}
+			c.JSON(http.StatusOK, social)
+		})
 	}
 
 	r.GET("/calendar", func(c *gin.Context) {
