@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/mattn/go-sqlite3"
@@ -22,7 +23,6 @@ func validateAPIKey(db *sql.DB) gin.HandlerFunc {
 		query := "SELECT 1 FROM api_keys WHERE api_key = ?"
 		err := db.QueryRow(query, apiKey).Scan(&exists)
 
-		
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid API key"})
@@ -34,30 +34,34 @@ func validateAPIKey(db *sql.DB) gin.HandlerFunc {
 }
 
 func main() {
-	db, err := sql.Open("sqlite3", "./rmc_sqlite.db")
+	dbPath := os.Getenv("DB_PATH")
+
+	log.Println("Attempting to connect to sqlite db at:", dbPath)
+
+	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
-		log.Fatal("Failed to open database:", err)
+		log.Println("Failed to open database:", err)
 	}
 	defer db.Close()
 
 	if err := db.Ping(); err != nil {
-		log.Fatal("Failed to ping database:", err)
+		log.Println("Failed to ping database:", err)
 	}
 
-	
 	var meetCount int
 	err = db.QueryRow("SELECT COUNT(*) FROM meets").Scan(&meetCount)
 	if err != nil {
-		log.Printf("Failed to count meets: %v", err)
+		// log.Fatalf("Failed to count meets: %v", err)
+		log.Println("Failed to count meets: %v", err)
 	} else {
 		log.Printf("Database contains %d meets", meetCount)
 	}
-
 
 	r := gin.Default()
 
 	api := r.Group("/")
 	api.Use(validateAPIKey(db))
+
 	{
 		api.GET("/meets", func(c *gin.Context) {
 			meets, err := models.GetAllMeets(db)
