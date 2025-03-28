@@ -3,16 +3,20 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	ics "github.com/arran4/golang-ical"
 )
 
-func createCalendarEvent(meet Meet) *ics.VEvent {
+func createCalendarEvent(meet Meet, lastSyncTime time.Time) *ics.VEvent {
 	event := ics.NewEvent(fmt.Sprintf("meet-%d@rockhoppers.org", meet.ID))
 
 	event.SetSummary(meet.Title)
 
 	description := meet.Description
+
+	description = fmt.Sprintf("%s\n\n%s", description, meet.WebsiteURL)
+
 	if meet.MeetStewardNotes != "" {
 		description = fmt.Sprintf("%s\n\nSteward Notes: %s", description, meet.MeetStewardNotes)
 	}
@@ -20,11 +24,18 @@ func createCalendarEvent(meet Meet) *ics.VEvent {
 		description = fmt.Sprintf("%s\n\nDate Notes: %s", description, meet.DateNotes)
 	}
 	if meet.SpacesAvailable != nil {
-		description = fmt.Sprintf("%s\n\nSpaces Available: %d", description, *meet.SpacesAvailable)
+		if *meet.SpacesAvailable == 0 {
+			description = fmt.Sprintf("%s\n\nMeet Full", description)
+		} else {
+			description = fmt.Sprintf("%s\n\nSpaces Available: %d", description, *meet.SpacesAvailable)
+		}
 	}
 	if meet.BookingsOpenDate != nil {
 		description = fmt.Sprintf("%s\n\nBookings are open from %s.", description, meet.BookingsOpenDate.Format("2 January 2006"))
 	}
+
+	description = fmt.Sprintf("%s\n\nLast Sync: %s", description, lastSyncTime.Format("2 January 2006 15:04:05"))
+
 	event.SetDescription(description)
 
 	if meet.LocationURL != "" {
@@ -60,12 +71,15 @@ func GenerateCalendar(db *sql.DB) (string, error) {
 	cal.SetXWRCalDesc("Calendar of all Rockhoppers meets")
 
 	meets, err := GetAllMeets(db)
+
+	var lastSyncTime time.Time
+	err = db.QueryRow("SELECT last_sync_time FROM sync_metadata WHERE table_name = 'meets'").Scan(&lastSyncTime)
 	if err != nil {
 		return "", err
 	}
 
 	for _, meet := range meets {
-		event := createCalendarEvent(meet)
+		event := createCalendarEvent(meet, lastSyncTime)
 		cal.AddVEvent(event)
 	}
 

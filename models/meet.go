@@ -27,7 +27,7 @@ type Meet struct {
 	WaitingListSpacesAvailable *int       `json:"waiting_list_spaces_available"`
 	WaitingListTotalSpaces     *int       `json:"waiting_list_total_spaces"`
 	AllowGuests                int        `json:"allow_guests"`
-	WebsiteURL                 string
+	WebsiteURL                 string     `json:"website_url"`
 }
 
 // parseDate attempts to parse a date string using multiple formats
@@ -113,6 +113,7 @@ func ScanMeet(scanner interface {
 	m.NonLMC = nullIntToPtr(nonLMC)
 	m.WaitingListSpacesAvailable = nullIntToPtr(waitingListSpacesAvailable)
 	m.WaitingListTotalSpaces = nullIntToPtr(waitingListTotalSpaces)
+	m.WebsiteURL = fmt.Sprintf("https://www.rockhoppers.org.uk/meets/%d", m.ID)
 
 	if meetStewardID.Valid {
 		m.MeetStewardID = &meetStewardID.Int64
