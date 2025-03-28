@@ -82,18 +82,19 @@ func main() {
 			c.JSON(http.StatusOK, meet)
 		})
 
-		api.GET("/calendar", func(c *gin.Context) {
-			icsData, err := models.GenerateCalendar(db)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-				return
-			}
-
-			c.Header("Content-Type", "text/calendar; charset=utf-8")
-			c.Header("Content-Disposition", "attachment; filename=rockhoppers-meets.ics")
-			c.String(http.StatusOK, icsData)
-		})
 	}
+
+	r.GET("/calendar", func(c *gin.Context) {
+		icsData, err := models.GenerateCalendar(db)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.Header("Content-Type", "text/calendar; charset=utf-8")
+		c.Header("Content-Disposition", "attachment; filename=rockhoppers-meets.ics")
+		c.String(http.StatusOK, icsData)
+	})
 
 	log.Println("Starting server on http://localhost:8080")
 

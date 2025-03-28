@@ -23,7 +23,7 @@ func createCalendarEvent(meet Meet) *ics.VEvent {
 		description = fmt.Sprintf("%s\n\nSpaces Available: %d", description, *meet.SpacesAvailable)
 	}
 	if meet.BookingsOpenDate != nil {
-		description = fmt.Sprintf("%s\n\nBookings Open: %s", description, meet.BookingsOpenDate)
+		description = fmt.Sprintf("%s\n\nBookings are open from %s.", description, meet.BookingsOpenDate.Format("2 January 2006"))
 	}
 	event.SetDescription(description)
 
