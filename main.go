@@ -22,7 +22,9 @@ func validateAPIKey(db *sql.DB) gin.HandlerFunc {
 		query := "SELECT 1 FROM api_keys WHERE api_key = ?"
 		err := db.QueryRow(query, apiKey).Scan(&exists)
 
+		
 		if err != nil {
+			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid API key"})
 			return
 		}
@@ -41,6 +43,16 @@ func main() {
 	if err := db.Ping(); err != nil {
 		log.Fatal("Failed to ping database:", err)
 	}
+
+	
+	var meetCount int
+	err = db.QueryRow("SELECT COUNT(*) FROM meets").Scan(&meetCount)
+	if err != nil {
+		log.Printf("Failed to count meets: %v", err)
+	} else {
+		log.Printf("Database contains %d meets", meetCount)
+	}
+
 
 	r := gin.Default()
 
