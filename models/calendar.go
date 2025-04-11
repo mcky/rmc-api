@@ -103,7 +103,7 @@ func createSocialCalendarEvent(social Social, lastSyncTime time.Time) *ics.VEven
 	return event
 }
 
-func GenerateCalendar(db *sql.DB) (string, error) {
+func GenerateCalendar(db *sql.DB, member_id ...string) (string, error) {
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodPublish)
 	cal.SetProductId("-//Rockhoppers//Events Calendar//EN")

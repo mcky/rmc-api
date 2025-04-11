@@ -114,6 +114,19 @@ func main() {
 		c.String(http.StatusOK, icsData)
 	})
 
+	r.GET("/calendar/:member_id", func(c *gin.Context) {
+		member_id := c.Param("member_id")
+		icsData, err := models.GenerateCalendar(db, member_id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.Header("Content-Type", "text/calendar; charset=utf-8")
+		c.Header("Content-Disposition", "attachment; filename=rockhoppers-meets.ics")
+		c.String(http.StatusOK, icsData)
+	})
+
 	log.Println("Starting server on http://localhost:8080")
 
 	if err := r.Run(":8080"); err != nil {
