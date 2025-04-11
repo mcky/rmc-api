@@ -34,7 +34,11 @@ func createCalendarEvent(meet Meet, lastSyncTime time.Time) *ics.VEvent {
 		description = fmt.Sprintf("%s\n\nBookings are open from %s.", description, meet.BookingsOpenDate.Format("2 January 2006"))
 	}
 
-	description = fmt.Sprintf("%s\n\nLast Sync: %s", description, lastSyncTime.Format("2 January 2006 15:04:05"))
+	description = fmt.Sprintf(
+		"%s\n\nNote: Meet details and availability correct as of last sync: %s",
+		description,
+		lastSyncTime.Format("2 January 2006 15:04:05"),
+	)
 
 	event.SetDescription(description)
 
@@ -78,7 +82,11 @@ func createSocialCalendarEvent(social Social, lastSyncTime time.Time) *ics.VEven
 		description = fmt.Sprintf("%s\n\nTime: %s", description, social.StartTime)
 	}
 
-	description = fmt.Sprintf("%s\n\nLast Sync: %s", description, lastSyncTime.Format("2 January 2006 15:04:05"))
+	description = fmt.Sprintf(
+		"%s\n\nNote: Meet details and availability correct as of last sync: %s",
+		description,
+		lastSyncTime.Format("2 January 2006 15:04:05"),
+	)
 
 	event.SetDescription(description)
 	event.SetLocation(social.Location)
