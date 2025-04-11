@@ -107,9 +107,9 @@ func GenerateCalendar(db *sql.DB) (string, error) {
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodPublish)
 	cal.SetProductId("-//Rockhoppers//Events Calendar//EN")
-	cal.SetName("Rockhoppers Events")
+	cal.SetName("Rockhoppers meets & socials")
 	cal.SetDescription("Calendar of all Rockhoppers events")
-	cal.SetXWRCalName("Rockhoppers Events")
+	cal.SetXWRCalName("Rockhoppers meets & socials")
 	cal.SetXWRCalDesc("Calendar of all Rockhoppers events")
 
 	meets, err := GetAllMeets(db)
