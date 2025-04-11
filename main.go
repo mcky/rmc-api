@@ -91,6 +91,15 @@ func main() {
 			}
 			c.JSON(http.StatusOK, social)
 		})
+
+		api.GET("/sync-status", func(c *gin.Context) {
+			metadata, err := models.GetAllSyncMetadata(db)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, metadata)
+		})
 	}
 
 	r.GET("/calendar", func(c *gin.Context) {
